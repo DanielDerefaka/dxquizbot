@@ -1,5 +1,5 @@
 /**
- * DXQuiz - Utility Functions Module
+ * Zano Quiz - Utility Functions Module
  * Provides formatting and UI helper functions
  */
 const { Markup } = require("telegraf");
@@ -137,7 +137,6 @@ function createProgressBar(current, total) {
   }
 
   // Format the message
- 
 }
 
 /**
@@ -287,7 +286,7 @@ function formatQuestion(question, questionIndex, totalQuestions) {
 
 /**
  * Client-Side Timer Approach
- * 
+ *
  * This approach creates a countdown that runs in the user's Telegram client,
  * which is more reliable than server-side countdown updates.
  */
@@ -305,37 +304,37 @@ function createTimerKeyboard(questionIndex, options, timeSeconds) {
   // Which shows a live countdown without server updates
   const now = Math.floor(Date.now() / 1000);
   const endTime = now + timeSeconds;
-  
+
   // Create answer buttons
   const answerButtons = [
     [
-      { text: '🔴 A', callback_data: `answer_${questionIndex}_0` },
-      { text: '🔵 B', callback_data: `answer_${questionIndex}_1` }
+      { text: "🔴 A", callback_data: `answer_${questionIndex}_0` },
+      { text: "🔵 B", callback_data: `answer_${questionIndex}_1` },
     ],
     [
-      { text: '🟢 C', callback_data: `answer_${questionIndex}_2` },
-      { text: '🟡 D', callback_data: `answer_${questionIndex}_3` }
-    ]
+      { text: "🟢 C", callback_data: `answer_${questionIndex}_2` },
+      { text: "🟡 D", callback_data: `answer_${questionIndex}_3` },
+    ],
   ];
-  
+
   // Timer button that shows countdown (uses Telegram's built-in timer)
   // This shows an updating timer in Telegram without any server calls
   const timerButton = [
-    { 
+    {
       text: `⏱️ Time Remaining: ${timeSeconds}s`,
       callback_game: {
         // Telegram will automatically count down from endTime
-        start_param: `timer_${endTime}`
-      }
-    }
+        start_param: `timer_${endTime}`,
+      },
+    },
   ];
-  
+
   // Combine buttons and timer
   return {
     inline_keyboard: [
       ...answerButtons,
-      timerButton  // Add the timer as the last row
-    ]
+      timerButton, // Add the timer as the last row
+    ],
   };
 }
 
@@ -346,17 +345,17 @@ function createTimerKeyboard(questionIndex, options, timeSeconds) {
 async function nextQuestionWithClientTimer(ctx, chatId, quiz) {
   try {
     // [First part of function remains the same]
-    
+
     // Get current question data
     const questionIndex = quiz.currentQuestionIndex;
     const question = quiz.questions[questionIndex];
     const totalQuestions = quiz.questions.length;
-    
+
     // Format question text
     const questionNumber = questionIndex + 1;
     const progressInfo = `Question ${questionNumber}/${totalQuestions}`;
-    
-    const questionText = 
+
+    const questionText =
       `<b>🔸 ${progressInfo} 🔸</b>\n\n` +
       `<b>${question.text}</b>\n\n` +
       `🔴 A. ${question.options[0]}\n` +
@@ -364,48 +363,51 @@ async function nextQuestionWithClientTimer(ctx, chatId, quiz) {
       `🟢 C. ${question.options[2]}\n` +
       `🟡 D. ${question.options[3]}\n\n` +
       `<i>⚡ First correct answer gets +1 point! ⚡</i>`;
-    
+
     // Use the client-side timer keyboard
     const timerKeyboard = createTimerKeyboard(
-      questionIndex, 
+      questionIndex,
       question.options,
       quiz.settings.questionTime
     );
-    
+
     // Send question with client timer
-    const sentMsg = await ctx.replyWithHTML(questionText, { 
-      reply_markup: timerKeyboard 
+    const sentMsg = await ctx.replyWithHTML(questionText, {
+      reply_markup: timerKeyboard,
     });
-    
+
     // Store message ID
     quiz.messages.question = sentMsg.message_id;
-    
+
     // No need for separate timer message or visual updates
     // Instead, set a single server-side timeout for when time expires
     quiz.timers.question = setTimeout(
       () => handleQuestionTimeout(ctx, chatId, quiz.currentQuestionIndex),
       quiz.settings.questionTime * 1000
     );
-    
+
     return { success: true };
   } catch (error) {
-    logger.error('Error in nextQuestionWithClientTimer:', error);
-    return { success: false, message: "An error occurred while displaying the next question." };
+    logger.error("Error in nextQuestionWithClientTimer:", error);
+    return {
+      success: false,
+      message: "An error occurred while displaying the next question.",
+    };
   }
 }
 
 /**
  * IMPORTANT NOTE ABOUT TELEGRAM CLIENT TIMERS
- * 
+ *
  * The callback_game parameter used here is technically meant for HTML5 games,
  * but many bots use it to create client-side timers. This is not officially
  * documented by Telegram, but it works in most clients.
- * 
+ *
  * Limitations:
  * 1. The timer display is not customizable (it's a simple countdown)
  * 2. It may not work on all Telegram clients/platforms
  * 3. It doesn't send any event when the timer expires
- * 
+ *
  * If you use this approach, you still need a server-side timer to handle
  * when the question time expires.
  */

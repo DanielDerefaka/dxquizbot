@@ -1,5 +1,5 @@
 /**
- * DXQuiz - Main Entry Point
+ * Zano Quiz - Main Entry Point
  * A professional quiz competition bot for Telegram groups
  * With improved connection handling and conflict resolution
  */
@@ -43,50 +43,55 @@ async function checkConnection(token) {
     }
   } catch (error) {
     console.error("❌ Connection test failed:", error.message);
-    
+
     // Fallback to native https if fetch fails
     return new Promise((resolve) => {
       console.log("Trying alternative connection method...");
-      const req = https.request({
-        hostname: "api.telegram.org",
-        port: 443,
-        path: `/bot${token}/getMe`,
-        method: "GET",
-        timeout: 10000
-      }, (res) => {
-        let data = '';
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-        
-        res.on('end', () => {
-          try {
-            const result = JSON.parse(data);
-            if (result.ok) {
-              console.log(`✅ Connection successful! Bot: @${result.result.username}`);
-              resolve(true);
-            } else {
-              console.error(`❌ API Error: ${result.description}`);
+      const req = https.request(
+        {
+          hostname: "api.telegram.org",
+          port: 443,
+          path: `/bot${token}/getMe`,
+          method: "GET",
+          timeout: 10000,
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+
+          res.on("end", () => {
+            try {
+              const result = JSON.parse(data);
+              if (result.ok) {
+                console.log(
+                  `✅ Connection successful! Bot: @${result.result.username}`
+                );
+                resolve(true);
+              } else {
+                console.error(`❌ API Error: ${result.description}`);
+                resolve(false);
+              }
+            } catch (e) {
+              console.error("❌ Error parsing response:", e.message);
               resolve(false);
             }
-          } catch (e) {
-            console.error("❌ Error parsing response:", e.message);
-            resolve(false);
-          }
-        });
-      });
-      
-      req.on('error', (e) => {
+          });
+        }
+      );
+
+      req.on("error", (e) => {
         console.error("❌ Connection error:", e.message);
         resolve(false);
       });
-      
-      req.on('timeout', () => {
+
+      req.on("timeout", () => {
         console.error("❌ Connection timed out");
         req.destroy();
         resolve(false);
       });
-      
+
       req.end();
     });
   }
@@ -102,9 +107,9 @@ async function resetWebhook(bot) {
     console.log("Resetting webhook to prevent conflicts...");
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     console.log("✅ Webhook reset successful");
-    
+
     // Add a small delay to ensure Telegram processes the webhook deletion
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     return true;
   } catch (error) {
     console.error("❌ Failed to reset webhook:", error.message);
@@ -116,7 +121,7 @@ async function resetWebhook(bot) {
  * Start the bot with polling and retry mechanism
  */
 async function startBot() {
-  logger.info("Starting DXQuiz bot...");
+  logger.info("Starting Zano Quiz bot...");
 
   // Get bot token
   const botToken = process.env.BOT_TOKEN;
@@ -155,7 +160,7 @@ async function startBot() {
       if (currentRetry > 0) {
         logger.info(`Retry attempt ${currentRetry}/${MAX_RETRIES}...`);
         console.log(`Retry attempt ${currentRetry}/${MAX_RETRIES}...`);
-        
+
         // Reset webhook again before retry
         await resetWebhook(bot);
       }
@@ -172,13 +177,13 @@ async function startBot() {
           webhookReply: false,
           apiTimeout: 30000,
           // Add a unique session name to prevent conflicts
-          sessionName: `bot_session_${Date.now()}`
+          sessionName: `bot_session_${Date.now()}`,
         },
         // Use long polling with a reasonable timeout
         polling: {
           timeout: 30,
-          limit: 100
-        }
+          limit: 100,
+        },
       });
 
       logger.info("Bot is running successfully!");
@@ -194,7 +199,7 @@ async function startBot() {
 
       console.log(`
 ====================================
-  DXQuiz Bot Started Successfully!
+  Zano Quiz Bot Started Successfully!
   Bot Username: @${botInfo.username}
   Node.js: ${nodeVersion}
   Environment: ${environment}
@@ -210,11 +215,11 @@ async function startBot() {
       console.error(`Bot startup attempt failed: ${error.message}`);
 
       // Handle conflict error specifically
-      if (error.description && error.description.includes('409: Conflict')) {
+      if (error.description && error.description.includes("409: Conflict")) {
         console.log("⚠️ Conflict detected! Another bot instance is running.");
         await resetWebhook(bot);
         // Add extra delay for conflicts
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
       currentRetry++;
@@ -246,7 +251,7 @@ async function startBot() {
  */
 function shutdown(signal) {
   logger.info(`Received ${signal}. Shutting down gracefully...`);
-  console.log(`\nShutting down DXQuiz bot (${signal})...`);
+  console.log(`\nShutting down Zano Quiz bot (${signal})...`);
 
   // Stop the bot
   bot.stop(signal);
@@ -281,17 +286,21 @@ process.on("unhandledRejection", (reason, promise) => {
 const http = require("http");
 const PORT = process.env.PORT || 3000;
 
-http.createServer((req, res) => {
-  res.writeHead(200, {"Content-Type": "application/json"});
-  res.end(JSON.stringify({
-    status: "ok",
-    message: "DXQuiz Bot is running",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  }));
-}).listen(PORT, () => {
-  console.log(`Health check server running on port ${PORT}`);
-});
+http
+  .createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        message: "Zano Quiz Bot is running",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+      })
+    );
+  })
+  .listen(PORT, () => {
+    console.log(`Health check server running on port ${PORT}`);
+  });
 
 // Start the bot
 startBot();
