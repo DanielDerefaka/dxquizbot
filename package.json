@@ -21,9 +21,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "chart.js": "^4.4.9",
-    "chartjs-node-canvas": "^4.1.6",
-    "cron": "^2.4.0",
     "date-fns": "^2.30.0",
     "dotenv": "^16.5.0",
     "exceljs": "^4.3.0",
