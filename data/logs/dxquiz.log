@@ -1,0 +1,186 @@
+[2025-05-07 17:50:45] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 17:50:52] [ERROR] [Database] Failed to connect to MongoDB: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:50:52] [ERROR] Failed to start application: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:51:48] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 17:51:50] [ERROR] [Database] Failed to connect to MongoDB: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:51:50] [ERROR] Failed to start application: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:53:50] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 17:54:12] [ERROR] [Database] Failed to connect to MongoDB: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:54:12] [ERROR] Failed to start application: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:57:20] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 17:57:42] [ERROR] [Database] Failed to connect to MongoDB: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 17:57:42] [ERROR] Failed to start application: bad auth : authentication failed 
+Error: bad auth : authentication failed
+    at new MongoError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:97:9)
+    at new MongoServerError (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/error.js:147:9)
+    at onMessage (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/connection.js:202:38)
+    at emit (node:events:73:22)
+    at processIncomingData (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:124:16)
+    at _write (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/mongodb/lib/cmap/message_stream.js:33:9)
+    at writeOrBuffer (node:stream:2441:107)
+    at <anonymous> (node:stream:2409:20)
+    at ondata (node:stream:1908:23)
+    at emit (node:events:73:22)
+[2025-05-07 18:07:13] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 18:07:30] [INFO] [Database] Connected to MongoDB at dx.mnp52cs.mongodb.net/?retryWrites=true&w=majority&appName=dx 
+[2025-05-07 18:07:30] [INFO] Database connection established 
+[2025-05-07 18:07:30] [INFO] [Scheduler] Scheduler initialized with 0 active schedules 
+[2025-05-07 18:07:30] [INFO] Quiz scheduler initialized 
+[2025-05-07 18:07:30] [INFO] [Commands] Registering bot commands 
+[2025-05-07 18:07:30] [ERROR] [Bot] Failed to initialize bot: Handler is undefined 
+Error: Handler is undefined
+    at unwrap (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:489:23)
+    at start (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:115:34)
+    at registerCommands (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/commands.js:25:7)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:59:5)
+    at initializeBot (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:25:32)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/index.js:29:23)
+    at processTicksAndRejections (native:7:39)
+[2025-05-07 18:07:30] [ERROR] Failed to start application: Handler is undefined 
+Error: Handler is undefined
+    at unwrap (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:489:23)
+    at start (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:115:34)
+    at registerCommands (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/commands.js:25:7)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:59:5)
+    at initializeBot (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:25:32)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/index.js:29:23)
+    at processTicksAndRejections (native:7:39)
+[2025-05-07 21:32:01] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 21:32:13] [INFO] [Database] Connected to MongoDB at dx.mnp52cs.mongodb.net/?retryWrites=true&w=majority&appName=dx 
+[2025-05-07 21:32:13] [INFO] Database connection established 
+[2025-05-07 21:32:13] [INFO] [Scheduler] Scheduler initialized with 0 active schedules 
+[2025-05-07 21:32:13] [INFO] Quiz scheduler initialized 
+[2025-05-07 21:32:13] [INFO] [Commands] Registering bot commands 
+[2025-05-07 21:32:13] [ERROR] [Bot] Failed to initialize bot: Handler is undefined 
+Error: Handler is undefined
+    at unwrap (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:489:23)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:359:34)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:48:34)
+    at registerCommands (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/commands.js:29:7)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:59:5)
+    at initializeBot (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:25:32)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/index.js:29:23)
+    at processTicksAndRejections (native:7:39)
+[2025-05-07 21:32:13] [ERROR] Failed to start application: Handler is undefined 
+Error: Handler is undefined
+    at unwrap (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:489:23)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:359:34)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:48:34)
+    at registerCommands (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/commands.js:29:7)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:59:5)
+    at initializeBot (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:25:32)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/index.js:29:23)
+    at processTicksAndRejections (native:7:39)
+[2025-05-07 21:35:53] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 21:36:00] [INFO] [Database] Connected to MongoDB at dx.mnp52cs.mongodb.net/?retryWrites=true&w=majority&appName=dx 
+[2025-05-07 21:36:00] [INFO] Database connection established 
+[2025-05-07 21:36:00] [INFO] [Scheduler] Scheduler initialized with 0 active schedules 
+[2025-05-07 21:36:00] [INFO] Quiz scheduler initialized 
+[2025-05-07 21:36:00] [INFO] [Commands] Registering bot commands 
+[2025-05-07 21:36:00] [ERROR] [Bot] Failed to initialize bot: Handler is undefined 
+Error: Handler is undefined
+    at unwrap (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:489:23)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:359:34)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:48:34)
+    at registerCommands (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/commands.js:33:7)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:59:5)
+    at initializeBot (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:25:32)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/index.js:29:23)
+    at processTicksAndRejections (native:7:39)
+[2025-05-07 21:36:00] [ERROR] Failed to start application: Handler is undefined 
+Error: Handler is undefined
+    at unwrap (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:489:23)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:359:34)
+    at command (/Users/macbookk/Desktop/CODES 😎/dxquizbot/node_modules/telegraf/lib/composer.js:48:34)
+    at registerCommands (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/commands.js:33:7)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:59:5)
+    at initializeBot (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/bot/bot.js:25:32)
+    at <anonymous> (/Users/macbookk/Desktop/CODES 😎/dxquizbot/src/index.js:29:23)
+    at processTicksAndRejections (native:7:39)
+[2025-05-07 21:38:13] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 21:38:45] [ERROR] [Database] Failed to connect to MongoDB: Server failed to complete the DNS operation 
+[2025-05-07 21:38:45] [ERROR] Failed to start application: Server failed to complete the DNS operation 
+[2025-05-07 21:38:53] [INFO] Starting DXQuiz Telegram Bot... 
+[2025-05-07 21:38:58] [INFO] [Database] Connected to MongoDB at dx.mnp52cs.mongodb.net/?retryWrites=true&w=majority&appName=dx 
+[2025-05-07 21:38:58] [INFO] Database connection established 
+[2025-05-07 21:38:58] [INFO] [Scheduler] Scheduler initialized with 0 active schedules 
+[2025-05-07 21:38:58] [INFO] Quiz scheduler initialized 
+[2025-05-07 21:38:58] [INFO] [Commands] Registering bot commands 
+[2025-05-07 21:38:58] [INFO] [Commands] Commands registered successfully 
