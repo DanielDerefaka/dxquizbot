@@ -4,12 +4,12 @@ FROM node:18-alpine
 # Create app directory
 WORKDIR /usr/src/app
 
-# Install app dependencies
-# Copy package.json and package-lock.json first for better caching
-COPY package*.json ./
+# Copy package.json first
+COPY package.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies - using npm install instead of npm ci
+# This will work with or without a package-lock.json file
+RUN npm install --production --no-audit
 
 # Bundle app source
 COPY . .
