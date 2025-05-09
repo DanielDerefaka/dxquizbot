@@ -1,14 +1,13 @@
 # Use Bun as the base image
-FROM oven/bun:1.0.18
+FROM node:16-alpine
+
 
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy package.json
-COPY package.json ./
-
-# Install dependencies with Bun
-RUN bun install --production
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install --only=production
 
 # Bundle app source
 COPY . .
