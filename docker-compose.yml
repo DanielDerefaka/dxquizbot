@@ -1,22 +1,17 @@
 version: '3'
 
 services:
-  dxquizbot:
-    build: .
-    restart: always
-    volumes:
-      - ./data:/usr/src/app/data
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - NODE_ENV=production
-      - LOG_LEVEL=info
-    # For development - uncomment the lines below
-    # volumes:
-    #   - ./src:/usr/src/app/src
-    #   - ./data:/usr/src/app/data
-    #   - ./package.json:/usr/src/app/package.json
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', res => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  - type: web
+    name: dxquizbot
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+    disk:
+      name: data
+      mountPath: /usr/src/app/data
+      sizeGB: 1
