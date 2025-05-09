@@ -19,4 +19,4 @@ RUN mkdir -p data/quizzes
 ENV NODE_ENV production
 
 # Run the app with Bun
-CMD ["bun", "index.js"]
+CMD ["npm", "index.js"]
