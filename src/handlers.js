@@ -1652,6 +1652,72 @@ async function confirmDeleteQuizHandler(ctx) {
 }
 
 /**
+ * Check if a user is an admin in a Telegram group
+ * @param {Object} ctx - Telegram context
+ * @param {number} userId - User ID to check
+ * @param {number} chatId - Chat ID to check in
+ * @returns {Promise<boolean>} Whether the user is an admin
+ */
+async function isGroupAdmin(ctx, userId, chatId) {
+  try {
+    // Get chat member info
+    const member = await ctx.telegram.getChatMember(chatId, userId);
+    
+    // Check if the user is an admin or the creator
+    return ['creator', 'administrator'].includes(member.status);
+  } catch (error) {
+    logger.error(`Error checking admin status: ${error.message}`, error);
+    return false;
+  }
+}
+
+/**
+ * Middleware to check if user is an admin for group commands
+ * @param {Object} ctx - Telegram context
+ * @param {Function} next - Next middleware function
+ */
+async function adminRequiredMiddleware(ctx, next) {
+  // Skip check for private chats
+  if (ctx.chat.type === 'private') {
+    return next();
+  }
+  
+  // List of commands that require admin privileges in groups
+  const adminCommands = [
+    'start_quiz',
+    'end_quiz',
+    'schedule_quiz',
+    'cancel_quiz',
+    'skip_question',
+    'settings'
+  ];
+  
+  // Check if this is a command message
+  if (ctx.message && ctx.message.text && ctx.message.text.startsWith('/')) {
+    const command = ctx.message.text.split(' ')[0].substring(1).split('@')[0];
+    
+    // If this is an admin command, check permissions
+    if (adminCommands.includes(command)) {
+      const isAdmin = await isGroupAdmin(ctx, ctx.from.id, ctx.chat.id);
+      
+      if (!isAdmin) {
+        await ctx.replyWithHTML(
+          formatMessage(
+            "Admin Permission Required",
+            `Sorry, only group administrators can use the /${command} command.`,
+            UI.COLORS.DANGER
+          )
+        );
+        return; // Stop processing
+      }
+    }
+  }
+  
+  // Continue processing if admin check passed or not needed
+  return next();
+}
+
+/**
  * Edit quiz handler
  * @param {Object} ctx - Telegram context
  */
@@ -2507,6 +2573,11 @@ module.exports = {
   customTimerHandler,
   processTimerUpdateHandler,
   editQuestionsHandler,
+
+
+    // Admin middleware
+    isGroupAdmin,
+    adminRequiredMiddleware,
 
   // Additional functionality
   setupButtonActions,

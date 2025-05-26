@@ -73,10 +73,12 @@ function createParticipant(userId, firstName, username) {
     firstName,
     username,
     correctAnswers: 0,
+    score: 0,
     responses: [],
     lastResponseTime: 0,
-    score: 0,
-    streak: 0, // Bonus for consecutive correct answers
+    streak: 0, // Current streak count
+    maxStreak: 0, // Highest streak achieved
+    previousPosition: 0, // For tracking position changes
   };
 }
 
@@ -825,6 +827,216 @@ async function runSimpleTimer(ctx, chatId, quiz) {
   }
 }
 
+
+function createQuestionLeaderboard(quiz, questionIndex) {
+  try {
+    const participants = Array.from(quiz.participants.values());
+    
+    // Sort by score, then by correct answers, then by response time
+    const sortedParticipants = participants
+      .filter(p => p.responses.length > 0) // Only participants who have answered
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score; // Higher score first
+        }
+        if (b.correctAnswers !== a.correctAnswers) {
+          return b.correctAnswers - a.correctAnswers; // More correct answers
+        }
+        return a.lastResponseTime - b.lastResponseTime; // Faster response time
+      });
+
+    if (sortedParticipants.length === 0) {
+      return "No participants have answered yet!";
+    }
+
+    // Update positions and track changes
+    sortedParticipants.forEach((participant, index) => {
+      const newPosition = index + 1;
+      const oldPosition = participant.previousPosition || newPosition;
+      
+      participant.positionChange = oldPosition - newPosition; // Positive = moved up, negative = moved down
+      participant.previousPosition = newPosition;
+    });
+
+    // Get top 3 for podium display
+    const topThree = sortedParticipants.slice(0, 3);
+    
+    let leaderboard = `🏆 <b>LEADERBOARD</b> 🏆\n`;
+    leaderboard += `<i>After Question ${questionIndex + 1}</i>\n\n`;
+
+    // Podium display
+    if (topThree.length >= 1) {
+      const first = topThree[0];
+      const displayName = first.username ? `@${first.username}` : first.firstName;
+      const positionIcon = getPositionChangeIcon(first.positionChange);
+      
+      leaderboard += `🥇 <b>${displayName}</b> - ${first.score} pts ${positionIcon}\n`;
+      
+      if (first.streak > 1) {
+        leaderboard += `   🔥 ${first.streak}-question streak!\n`;
+      }
+    }
+
+    if (topThree.length >= 2) {
+      const second = topThree[1];
+      const displayName = second.username ? `@${second.username}` : second.firstName;
+      const positionIcon = getPositionChangeIcon(second.positionChange);
+      
+      leaderboard += `🥈 <b>${displayName}</b> - ${second.score} pts ${positionIcon}\n`;
+      
+      if (second.streak > 1) {
+        leaderboard += `   🔥 ${second.streak}-question streak!\n`;
+      }
+    }
+
+    if (topThree.length >= 3) {
+      const third = topThree[2];
+      const displayName = third.username ? `@${third.username}` : third.firstName;
+      const positionIcon = getPositionChangeIcon(third.positionChange);
+      
+      leaderboard += `🥉 <b>${displayName}</b> - ${third.score} pts ${positionIcon}\n`;
+      
+      if (third.streak > 1) {
+        leaderboard += `   🔥 ${third.streak}-question streak!\n`;
+      }
+    }
+
+    // Show highest streak if significant
+    const highestStreakPlayer = sortedParticipants.reduce((max, player) => 
+      player.streak > max.streak ? player : max
+    );
+    
+    if (highestStreakPlayer.streak >= 3) {
+      const streakName = highestStreakPlayer.username 
+        ? `@${highestStreakPlayer.username}` 
+        : highestStreakPlayer.firstName;
+      leaderboard += `\n🔥 <b>Hot Streak:</b> ${streakName} (${highestStreakPlayer.streak} in a row!)`;
+    }
+
+    // Show total participants
+    if (sortedParticipants.length > 3) {
+      leaderboard += `\n\n👥 <i>${sortedParticipants.length} players competing</i>`;
+    }
+
+    return leaderboard;
+  } catch (error) {
+    logger.error("Error creating question leaderboard:", error);
+    return "Error displaying leaderboard";
+  }
+}
+
+
+
+function getPositionChangeIcon(change) {
+  if (change > 0) {
+    return `(↑${change})`;
+  } else if (change < 0) {
+    return `(↓${Math.abs(change)})`;
+  } else {
+    return "(→)";
+  }
+}
+
+
+/**
+ * Updated handleQuestionTimeout with leaderboard display
+ * @param {Object} ctx - Telegram context
+ * @param {number} chatId - Chat ID
+ * @param {number} questionIndex - Question index
+ */
+async function handleQuestionTimeout(ctx, chatId, questionIndex) {
+  try {
+    const quiz = activeQuizzes.get(chatId);
+    if (
+      !quiz ||
+      quiz.status !== "running" ||
+      quiz.currentQuestionIndex !== questionIndex
+    ) {
+      return;
+    }
+
+    // Update quiz status
+    quiz.status = "intermission";
+
+    // Disable keyboard buttons
+    try {
+      await ctx.telegram.editMessageReplyMarkup(
+        chatId,
+        quiz.messages.question,
+        null,
+        { inline_keyboard: [] }
+      );
+    } catch (error) {
+      logger.error("Failed to disable keyboard:", error);
+    }
+
+    // Get question data
+    const question = quiz.questions[questionIndex];
+    if (!question) {
+      logger.error(`Question index ${questionIndex} not found`);
+      setTimeout(() => nextQuestion(ctx, chatId), 3000);
+      return;
+    }
+
+    // Define correct answer info
+    const correctAnswer = question.correctAnswer;
+    const correctLetter = ["A", "B", "C", "D"][correctAnswer];
+    const correctOption = question.options[correctAnswer];
+
+    // Format first winner message
+    let winnerMessage = "";
+    if (question.firstCorrectAnswer) {
+      const winner = question.firstCorrectAnswer;
+      const displayName = winner.username
+        ? `@${winner.username}`
+        : winner.firstName;
+
+      winnerMessage = `\n\n🎯 <b>First Correct:</b> ${displayName} (+2 pts)`;
+    } else {
+      winnerMessage = "\n\n❌ <b>No one got it right!</b>";
+    }
+
+    // Create answer summary message
+    const answerMessage = 
+      `<b>⏱️ TIME'S UP! ⏱️</b>\n\n` +
+      `✅ <b>Correct Answer:</b> ${correctLetter}. ${correctOption}` +
+      winnerMessage;
+
+    // Send answer summary
+    await ctx.replyWithHTML(answerMessage);
+
+    // Small delay before leaderboard
+    setTimeout(async () => {
+      try {
+        // Create and send leaderboard
+        const leaderboard = createQuestionLeaderboard(quiz, questionIndex);
+        await ctx.replyWithHTML(leaderboard);
+
+        // Show next question countdown
+        await ctx.replyWithHTML(
+          `<b>⏳ Next question in ${quiz.settings.intermissionTime} seconds...</b>`
+        );
+
+        // Schedule next question
+        quiz.timers.intermission = setTimeout(
+          () => nextQuestion(ctx, chatId),
+          quiz.settings.intermissionTime * 1000
+        );
+      } catch (error) {
+        logger.error("Error sending leaderboard:", error);
+        // Continue to next question even if leaderboard fails
+        setTimeout(() => nextQuestion(ctx, chatId), 3000);
+      }
+    }, 1000); // 1 second delay for better UX
+
+  } catch (error) {
+    logger.error("Error in handleQuestionTimeout:", error);
+    setTimeout(
+      () => nextQuestion(ctx, chatId),
+      quiz.settings.intermissionTime * 1000 + 3000
+    );
+  }
+}
 /**
  * Process answer with no update to timer display
  * @param {Object} ctx - Telegram context
@@ -854,7 +1066,7 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
     // Initialize responses array if needed
     if (!question.responses) {
       question.responses = [];
-      question.firstCorrectAnswer = null; // Track first correct answer
+      question.firstCorrectAnswer = null;
     }
 
     // Get user info
@@ -900,9 +1112,16 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
     participant.responses.push(response);
     participant.lastResponseTime = responseTime;
 
+    let pointsEarned = 0;
+    let streakBonus = 0;
+    let isFirst = false;
+
     if (isCorrect) {
       participant.correctAnswers++;
-
+      
+      // Base point for correct answer
+      pointsEarned = 1;
+      
       // Check if this is the first correct answer for this question
       if (!question.firstCorrectAnswer) {
         question.firstCorrectAnswer = {
@@ -911,21 +1130,34 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
           firstName,
           time: responseTime,
         };
-
-        // Award 1 point to the first correct answerer
-        participant.score += 1;
-        response.isFirst = true;
-        response.points = 1;
-      } else {
-        // No points for correct but not first
-        response.isFirst = false;
-        response.points = 0;
+        
+        // Bonus point for being first
+        pointsEarned += 1; // Total: 2 points for first correct
+        isFirst = true;
       }
+      
+      // Handle streak
+      participant.streak++;
+      participant.maxStreak = Math.max(participant.maxStreak, participant.streak);
+      
+      // Streak bonus (starts from 2nd consecutive correct answer)
+      if (participant.streak >= 2) {
+        streakBonus = 1;
+        pointsEarned += streakBonus;
+      }
+      
+      // Add points to participant's score
+      participant.score += pointsEarned;
+      
     } else {
-      // No points for wrong answers
-      response.isFirst = false;
-      response.points = 0;
+      // Wrong answer - reset streak
+      participant.streak = 0;
     }
+
+    // Update response with points earned
+    response.isFirst = isFirst;
+    response.points = pointsEarned;
+    response.streakBonus = streakBonus;
 
     // Add to question responses
     question.responses.push(response);
@@ -933,13 +1165,19 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
     // Provide feedback to user
     let feedback;
     if (isCorrect) {
-      if (response.isFirst) {
-        feedback = `✅ Correct! You were first! +1 point`;
+      if (isFirst) {
+        feedback = `🎯 First & Correct! +${pointsEarned} pts`;
+        if (streakBonus > 0) {
+          feedback += ` (${participant.streak} streak!)`;
+        }
       } else {
-        feedback = `✅ Correct! But someone was faster`;
+        feedback = `✅ Correct! +${pointsEarned} pts`;
+        if (streakBonus > 0) {
+          feedback += ` (${participant.streak} streak!)`;
+        }
       }
     } else {
-      feedback = "❌ Wrong answer!";
+      feedback = "❌ Wrong answer! Streak reset.";
     }
 
     await ctx.answerCbQuery(feedback);
@@ -947,8 +1185,10 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
     return {
       success: true,
       correct: isCorrect,
-      isFirst: response.isFirst,
-      points: response.points,
+      isFirst,
+      points: pointsEarned,
+      streak: participant.streak,
+      streakBonus,
     };
   } catch (error) {
     logger.error("Error in processAnswer:", error);
@@ -975,211 +1215,119 @@ function calculateResults(quiz) {
   try {
     const participants = Array.from(quiz.participants.values());
 
-    // Sort participants by score and then by other factors
+    // Sort participants by score, then by correct answers, then by response time
     participants.sort((a, b) => {
       if (b.score !== a.score) {
-        // Higher score first (number of first correct answers)
         return b.score - a.score;
       }
       if (b.correctAnswers !== a.correctAnswers) {
-        // If same score, sort by total correct answers
         return b.correctAnswers - a.correctAnswers;
       }
-      // If still tied, sort by fastest response time
       return a.lastResponseTime - b.lastResponseTime;
     });
 
-    // Get top performers for display
     const topPerformers = participants.slice(0, 10);
-
-    // Build an exciting, visually appealing leaderboard
     let leaderboard = "";
 
-    // Special highlighting for top 3 winners
     if (topPerformers.length > 0) {
-      // Champion section with extra flair
+      // Champion section
       if (topPerformers.length >= 1) {
         const champion = topPerformers[0];
         const displayName = champion.username
           ? `@${champion.username}`
           : champion.firstName;
 
-        // Calculate win percentage
         const winPercent = Math.round(
-          (champion.score / quiz.questions.length) * 100
+          (champion.correctAnswers / quiz.questions.length) * 100
         );
 
-        // Champion trophy display
         leaderboard +=
           `${UI.ICONS.CROWN} <b>CHAMPION</b> ${UI.ICONS.CROWN}\n` +
           `${UI.ICONS.MEDAL_GOLD} <b>${displayName}</b> ${UI.ICONS.MEDAL_GOLD}\n` +
           `${champion.score} points (${champion.correctAnswers}/${quiz.questions.length} correct)\n` +
-          `Win rate: ${winPercent}%\n\n`;
+          `Win rate: ${winPercent}%\n`;
+
+        if (champion.maxStreak >= 2) {
+          leaderboard += `🔥 Best streak: ${champion.maxStreak} questions\n`;
+        }
+        leaderboard += "\n";
       }
 
-      // Other top finishers
+      // Podium finishers
       if (topPerformers.length >= 2) {
-        // Create podium section for 2nd and 3rd
         leaderboard += `<b>🏆 PODIUM FINISHERS 🏆</b>\n`;
 
-        // Second place
         const silver = topPerformers[1];
         const silverName = silver.username
           ? `@${silver.username}`
           : silver.firstName;
-        leaderboard += `${UI.ICONS.MEDAL_SILVER} <b>${silverName}</b> - ${silver.score} pts (${silver.correctAnswers} correct)\n`;
+        leaderboard += `${UI.ICONS.MEDAL_SILVER} <b>${silverName}</b> - ${silver.score} pts`;
+        if (silver.maxStreak >= 2) {
+          leaderboard += ` (${silver.maxStreak} streak)`;
+        }
+        leaderboard += "\n";
 
-        // Third place if available
         if (topPerformers.length >= 3) {
           const bronze = topPerformers[2];
           const bronzeName = bronze.username
             ? `@${bronze.username}`
             : bronze.firstName;
-          leaderboard += `${UI.ICONS.MEDAL_BRONZE} <b>${bronzeName}</b> - ${bronze.score} pts (${bronze.correctAnswers} correct)\n`;
+          leaderboard += `${UI.ICONS.MEDAL_BRONZE} <b>${bronzeName}</b> - ${bronze.score} pts`;
+          if (bronze.maxStreak >= 2) {
+            leaderboard += ` (${bronze.maxStreak} streak)`;
+          }
+          leaderboard += "\n";
         }
-
         leaderboard += "\n";
       }
 
-      // Other participants (4th place onwards)
+      // Other participants
       if (topPerformers.length > 3) {
         leaderboard += `<b>OTHER FINISHERS</b>\n`;
-
-        for (let i = 3; i < topPerformers.length; i++) {
+        for (let i = 3; i < Math.min(topPerformers.length, 7); i++) {
           const player = topPerformers[i];
           const playerName = player.username
             ? `@${player.username}`
             : player.firstName;
-          leaderboard += `${i + 1}. <b>${playerName}</b> - ${
-            player.score
-          } pts (${player.correctAnswers} correct)\n`;
+          leaderboard += `${i + 1}. <b>${playerName}</b> - ${player.score} pts`;
+          if (player.maxStreak >= 2) {
+            leaderboard += ` (${player.maxStreak} streak)`;
+          }
+          leaderboard += "\n";
         }
       }
     } else {
       leaderboard = "😢 No participants in this quiz!";
     }
 
-    // Generate exciting statistics section
+    // Enhanced statistics
     let stats = "";
-
     if (participants.length > 0) {
       stats += `<b>📊 QUIZ STATS 📊</b>\n\n`;
-
-      // Basic stats with visual elements
       stats += `👥 <b>Players:</b> ${participants.length}\n`;
 
-      // Calculate average score and add visual flair
       const totalScore = participants.reduce((sum, p) => sum + p.score, 0);
       const avgScore = totalScore / participants.length;
       stats += `🎯 <b>Avg Score:</b> ${avgScore.toFixed(1)} points\n`;
 
-      // Calculate average correct answers
       const totalCorrect = participants.reduce(
         (sum, p) => sum + p.correctAnswers,
         0
       );
       const avgCorrect = totalCorrect / participants.length;
-      stats += `✅ <b>Avg Correct:</b> ${avgCorrect.toFixed(1)}/${
-        quiz.questions.length
-      }\n\n`;
+      stats += `✅ <b>Avg Correct:</b> ${avgCorrect.toFixed(1)}/${quiz.questions.length}\n`;
 
-      // Find interesting stats about the quiz
-
-      // Most contested questions
-      const contestedQuestions = quiz.questions
-        .map((q, idx) => {
-          const correctResponses =
-            q.responses?.filter((r) => r.isCorrect)?.length || 0;
-          return {
-            index: idx,
-            text: q.text,
-            contestedScore: correctResponses > 0 ? correctResponses - 1 : 0,
-          };
-        })
-        .filter((q) => q.contestedScore > 0)
-        .sort((a, b) => b.contestedScore - a.contestedScore);
-
-      if (contestedQuestions.length > 0) {
-        const mostContested = contestedQuestions[0];
-        const shortText =
-          mostContested.text.length > 30
-            ? mostContested.text.substring(0, 27) + "..."
-            : mostContested.text;
-
-        stats += `🔥 <b>Hottest Q:</b> #${mostContested.index + 1} with ${
-          mostContested.contestedScore + 1
-        } correct answers\n`;
+      // Streak statistics
+      const maxStreak = Math.max(...participants.map(p => p.maxStreak));
+      if (maxStreak >= 2) {
+        const streakChampion = participants.find(p => p.maxStreak === maxStreak);
+        const streakName = streakChampion.username 
+          ? `@${streakChampion.username}` 
+          : streakChampion.firstName;
+        stats += `🔥 <b>Longest Streak:</b> ${streakName} (${maxStreak} questions)\n`;
       }
 
-      // Find questions with no correct answers
-      const trickyQuestions = quiz.questions
-        .map((q, idx) => {
-          const correctResponses =
-            q.responses?.filter((r) => r.isCorrect)?.length || 0;
-          return { index: idx, text: q.text, correctCount: correctResponses };
-        })
-        .filter((q) => q.correctCount === 0);
-
-      if (trickyQuestions.length > 0) {
-        stats += `❓ <b>Stumped Everyone:</b> ${trickyQuestions.length} questions had no correct answers\n`;
-      }
-
-      // Find fastest responder
-      const allResponses = [];
-      participants.forEach((p) => {
-        p.responses.forEach((r) => {
-          if (r.isCorrect && r.isFirst) {
-            allResponses.push({
-              userId: p.userId,
-              name: p.username || p.firstName,
-              questionIndex: r.questionIndex,
-              time: r.time,
-            });
-          }
-        });
-      });
-
-      if (allResponses.length > 0) {
-        // Group by user
-        const userResponses = {};
-        allResponses.forEach((r) => {
-          if (!userResponses[r.userId]) {
-            userResponses[r.userId] = {
-              name: r.name,
-              responses: [],
-            };
-          }
-          userResponses[r.userId].responses.push(r);
-        });
-
-        // Find fastest responder
-        let fastestUser = null;
-        let fastestAvg = Infinity;
-
-        Object.keys(userResponses).forEach((userId) => {
-          const user = userResponses[userId];
-          if (user.responses.length >= 2) {
-            // At least 2 first answers
-            const avgTime =
-              user.responses.reduce(
-                (sum, r) => sum + (r.time - quiz.startTime),
-                0
-              ) / user.responses.length;
-            if (avgTime < fastestAvg) {
-              fastestAvg = avgTime;
-              fastestUser = user;
-            }
-          }
-        });
-
-        if (fastestUser) {
-          stats += `⚡ <b>Speed Demon:</b> ${fastestUser.name} (avg: ${(
-            fastestAvg / 1000
-          ).toFixed(2)}s)\n`;
-        }
-      }
-
-      // Add quiz duration with visual flair
+      // Quiz duration
       if (quiz.startTime && quiz.endTime) {
         const durationMs = quiz.endTime - quiz.startTime;
         const durationMin = Math.floor(durationMs / 60000);
@@ -1188,34 +1336,18 @@ function calculateResults(quiz) {
       }
     }
 
-    // Create cool closing message
-    let closingMessage = "";
-    if (participants.length > 0 && topPerformers.length > 0) {
-      const winner = topPerformers[0];
-      const winnerName = winner.username
-        ? `@${winner.username}`
-        : winner.firstName;
-
-      closingMessage =
-        `\n🎊 <b>Congratulations ${winnerName}!</b> 🎊\n` +
-        `You've earned the title of Quiz Champion!\n\n`;
-    }
-
-    closingMessage += `Thanks for playing! Use /start_quiz to battle again.`;
-
-    // Build the complete results message with visual separation
     const groupMessage =
-      `🏆 <b>QUIZ BATTLE COMPLETE!</b> 🏆\n` +
+      `🏆 <b>QUIZ COMPLETE!</b> 🏆\n` +
       `"${quiz.title}"\n\n` +
       `${leaderboard}\n` +
       `${stats.length > 0 ? "━━━━━━━━━━━━━━━━\n\n" + stats : ""}\n` +
-      `${closingMessage}`;
+      `🎊 Thanks for playing! Use /start_quiz to play again.`;
 
     return { groupMessage, parse_mode: "HTML" };
   } catch (error) {
     logger.error("Error in calculateResults:", error);
     return {
-      groupMessage: `${UI.COLORS.ERROR} <b>Quiz Complete!</b>\n\nAn error occurred while calculating the results. Thanks for playing!`,
+      groupMessage: `${UI.COLORS.ERROR} <b>Quiz Complete!</b>\n\nThanks for playing!`,
       parse_mode: "HTML",
     };
   }

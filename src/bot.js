@@ -13,6 +13,72 @@ const logger = require("./logger");
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 /**
+ * Check if a user is an admin in a Telegram group
+ * @param {Object} ctx - Telegram context
+ * @param {number} userId - User ID to check
+ * @param {number} chatId - Chat ID to check in
+ * @returns {Promise<boolean>} Whether the user is an admin
+ */
+async function isGroupAdmin(ctx, userId, chatId) {
+  try {
+    // Get chat member info
+    const member = await ctx.telegram.getChatMember(chatId, userId);
+    
+    // Check if the user is an admin or the creator
+    return ['creator', 'administrator'].includes(member.status);
+  } catch (error) {
+    logger.error(`Error checking admin status: ${error.message}`, error);
+    return false;
+  }
+}
+
+/**
+ * Middleware to check if user is an admin for group commands
+ * @param {Object} ctx - Telegram context
+ * @param {Function} next - Next middleware function
+ */
+async function adminRequiredMiddleware(ctx, next) {
+  // Skip check for private chats
+  if (!ctx.chat || ctx.chat.type === 'private') {
+    return next();
+  }
+  
+  // List of commands that require admin privileges in groups
+  const adminCommands = [
+    'start_quiz',
+    'end_quiz',
+    'schedule_quiz',
+    'cancel_quiz',
+    'skip_question',
+    'settings'
+  ];
+  
+  // Check if this is a command message
+  if (ctx.message && ctx.message.text && ctx.message.text.startsWith('/')) {
+    const command = ctx.message.text.split(' ')[0].substring(1).split('@')[0];
+    
+    // If this is an admin command, check permissions
+    if (adminCommands.includes(command)) {
+      const isAdmin = await isGroupAdmin(ctx, ctx.from.id, ctx.chat.id);
+      
+      if (!isAdmin) {
+        await ctx.replyWithHTML(
+          handlers.formatMessage(
+            "Admin Permission Required",
+            `Sorry, only group administrators can use the /${command} command.`,
+            handlers.UI.COLORS.DANGER
+          )
+        );
+        return; // Stop processing
+      }
+    }
+  }
+  
+  // Continue processing if admin check passed or not needed
+  return next();
+}
+
+/**
  * Setup scenes and middleware
  */
 function setupMiddleware() {
@@ -20,6 +86,9 @@ function setupMiddleware() {
   const stage = new Scenes.Stage([quizCreationScene]);
   bot.use(session());
   bot.use(stage.middleware());
+  
+  // Add admin middleware to restrict group commands to admins only
+  bot.use(adminRequiredMiddleware);
 
   logger.info("Bot middleware configured");
 }
@@ -43,6 +112,7 @@ function registerHandlers() {
       },
       { command: "end_quiz", description: "End the current quiz (admin only)" },
       { command: "my_quizzes", description: "Manage your created quizzes" },
+      { command: "shared_quizzes", description: "See quizzes shared with you" },
     ])
     .catch((err) => {
       logger.error("Failed to set commands:", err);
@@ -55,6 +125,7 @@ function registerHandlers() {
   bot.command("start_quiz", handlers.startQuizHandler);
   bot.command("end_quiz", handlers.endQuizHandler);
   bot.command("my_quizzes", handlers.myQuizzesHandler);
+  bot.command("shared_quizzes", handlers.sharedWithMeHandler);
 
   // Register button action handlers
   bot.action(/answer_(\d+)_(\d+)/, handlers.answerHandler);
@@ -114,4 +185,4 @@ function init() {
 // Initialize the bot
 init();
 
-module.exports = { bot };
+module.exports = { bot, isGroupAdmin, adminRequiredMiddleware };
