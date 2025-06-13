@@ -254,7 +254,7 @@ async function loadAndStartQuiz(ctx, chatId, quizData) {
 }
 
 /**
- * Send the next question with HTML formatting
+ * Send the next question with HTML formatting - Fixed to properly handle quiz end
  * @param {Object} ctx - Telegram context
  * @param {number} chatId - Chat ID
  * @returns {Promise<Object>} Result object
@@ -272,14 +272,16 @@ async function nextQuestion(ctx, chatId) {
     // Clear any existing timers
     clearTimers(quiz);
 
-    // Update quiz status
-    quiz.status = "running";
+    // Increment question index
     quiz.currentQuestionIndex++;
 
-    // Check if we've reached the end of the quiz
+    // Check if we've reached the end of the quiz BEFORE updating status
     if (quiz.currentQuestionIndex >= quiz.questions.length) {
       return await endQuiz(ctx, chatId);
     }
+
+    // Update quiz status only if we have more questions
+    quiz.status = "running";
 
     // Get current question data
     const questionIndex = quiz.currentQuestionIndex;
@@ -320,7 +322,7 @@ async function nextQuestion(ctx, chatId) {
     // Store message ID for later reference
     quiz.messages.question = sentMsg.message_id;
 
-    // Instead of sending and updating a timer message, just set a timeout
+    // Set timeout for question end
     quiz.timers.question = setTimeout(
       () => handleQuestionTimeout(ctx, chatId, quiz.currentQuestionIndex),
       timerSeconds * 1000
@@ -335,7 +337,6 @@ async function nextQuestion(ctx, chatId) {
     };
   }
 }
-
 /**
  * Run a visual countdown timer for the current question
  * @param {Object} ctx - Telegram context
@@ -542,6 +543,13 @@ async function withRateLimitRetry(apiCall, maxRetries = 3) {
  * @param {number} chatId - Chat ID
  * @param {number} questionIndex - Question index
  */
+
+/**
+ * Updated handleQuestionTimeout - no "next question" message when quiz ends
+ * @param {Object} ctx - Telegram context
+ * @param {number} chatId - Chat ID
+ * @param {number} questionIndex - Question index
+ */
 async function handleQuestionTimeout(ctx, chatId, questionIndex) {
   try {
     const quiz = activeQuizzes.get(chatId);
@@ -556,7 +564,7 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
     // Update quiz status
     quiz.status = "intermission";
 
-    // Disable keyboard buttons with error handling
+    // Disable keyboard buttons
     try {
       await ctx.telegram.editMessageReplyMarkup(
         chatId,
@@ -565,7 +573,6 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
         { inline_keyboard: [] }
       );
     } catch (error) {
-      // Log but continue execution
       logger.error("Failed to disable keyboard:", error);
     }
 
@@ -577,7 +584,6 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
       return;
     }
 
-    // Prepare results message
     // Define correct answer info
     const correctAnswer = question.correctAnswer;
     const correctLetter = ["A", "B", "C", "D"][correctAnswer];
@@ -591,88 +597,72 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
         ? `@${winner.username}`
         : winner.firstName;
 
-      // Calculate response time in seconds
-      const questionStartTime =
-        quiz.startTime +
-        questionIndex *
-          (quiz.settings.questionTime + quiz.settings.intermissionTime) *
-          1000;
-      const responseTimeSeconds = (
-        (winner.time - questionStartTime) /
-        1000
-      ).toFixed(2);
-
-      winnerMessage = `\n\n🏆 <b>First correct answer:</b> ${displayName} (+1 point)\n⏱️ Response time: ${responseTimeSeconds}s`;
+      winnerMessage = `\n\n🎯 <b>First Correct:</b> ${displayName} (+2 pts)`;
     } else {
-      winnerMessage = "\n\n❌ <b>No one answered correctly!</b>";
+      winnerMessage = "\n\n❌ <b>No one got it right!</b>";
     }
 
-    // [Rest of your response stats calculation]
+    // Create answer summary message
+    const answerMessage =
+      `<b>⏱️ TIME'S UP! ⏱️</b>\n\n` +
+      `✅ <b>Correct Answer:</b> ${correctLetter}. ${correctOption}` +
+      winnerMessage;
 
-    // Send intermission message with error handling and retry
-    try {
-      // Try up to 3 times with exponential backoff
-      let attempt = 0;
-      const maxAttempts = 3;
-      let success = false;
+    // Send answer summary
+    await ctx.replyWithHTML(answerMessage);
 
-      while (attempt < maxAttempts && !success) {
-        try {
+    // Check if this was the last question
+    const isLastQuestion = questionIndex + 1 >= quiz.questions.length;
+
+    // Small delay before next action
+    setTimeout(async () => {
+      try {
+        // Create and send leaderboard
+        const leaderboard = createQuestionLeaderboard(quiz, questionIndex);
+        await ctx.replyWithHTML(leaderboard);
+
+        if (isLastQuestion) {
+          // This was the last question - end the quiz
+          await endQuiz(ctx, chatId);
+        } else {
+          // More questions remaining - show countdown
           await ctx.replyWithHTML(
-            `<b>⏱️ TIME'S UP! ⏱️</b>\n\n` +
-              `✅ <b>Correct Answer:</b> ${correctLetter} (${correctOption})` +
-              winnerMessage +
-              `\n\n<b>Next question in ${quiz.settings.intermissionTime}s</b>`
+            `<b>⏳ Next question in ${quiz.settings.intermissionTime} seconds...</b>`
           );
-          success = true;
-        } catch (error) {
-          if (error.code === 429) {
-            // Rate limited, wait and retry
-            const retryAfter =
-              error.parameters?.retry_after || Math.pow(2, attempt);
-            logger.warn(
-              `Rate limited (attempt ${
-                attempt + 1
-              }/${maxAttempts}). Retry after ${retryAfter}s`
-            );
-            await new Promise((resolve) =>
-              setTimeout(resolve, retryAfter * 1000)
-            );
-            attempt++;
-          } else {
-            // Other error, don't retry
-            throw error;
-          }
+
+          // Schedule next question
+          quiz.timers.intermission = setTimeout(
+            () => nextQuestion(ctx, chatId),
+            quiz.settings.intermissionTime * 1000
+          );
+        }
+      } catch (error) {
+        logger.error("Error in timeout handler:", error);
+        // Continue to next question or end quiz
+        if (isLastQuestion) {
+          await endQuiz(ctx, chatId);
+        } else {
+          setTimeout(() => nextQuestion(ctx, chatId), 3000);
         }
       }
-
-      if (!success) {
-        logger.error(
-          "Failed to send intermission message after multiple attempts"
-        );
-      }
-    } catch (error) {
-      logger.error("Failed to send intermission message:", error);
-    }
-
-    // Schedule next question with increased delay to avoid rate limits
-    const baseDelay = quiz.settings.intermissionTime * 1000;
-    const extraDelay = 2000; // Add 2 seconds to ensure rate limit resets
-
-    quiz.timers.intermission = setTimeout(
-      () => nextQuestion(ctx, chatId),
-      baseDelay + extraDelay
-    );
+    }, 1000); // 1 second delay for better UX
   } catch (error) {
     logger.error("Error in handleQuestionTimeout:", error);
-    // Ensure quiz continues with extra delay
-    setTimeout(
-      () => nextQuestion(ctx, chatId),
-      quiz.settings.intermissionTime * 1000 + 3000
-    );
+
+    // Check if last question for error handling too
+    const quiz = activeQuizzes.get(chatId);
+    const isLastQuestion = quiz && questionIndex >= quiz.questions.length - 1;
+
+    if (isLastQuestion) {
+      await endQuiz(ctx, chatId);
+    } else {
+      setTimeout(
+        () => nextQuestion(ctx, chatId),
+        quiz?.settings?.intermissionTime * 1000 + 3000 || 8000
+      );
+    }
   }
 }
-
 /**
  * Run a precise visual timer with accurate timing
  * @param {Object} ctx - Telegram context
@@ -827,14 +817,13 @@ async function runSimpleTimer(ctx, chatId, quiz) {
   }
 }
 
-
 function createQuestionLeaderboard(quiz, questionIndex) {
   try {
     const participants = Array.from(quiz.participants.values());
-    
+
     // Sort by score, then by correct answers, then by response time
     const sortedParticipants = participants
-      .filter(p => p.responses.length > 0) // Only participants who have answered
+      .filter((p) => p.responses.length > 0) // Only participants who have answered
       .sort((a, b) => {
         if (b.score !== a.score) {
           return b.score - a.score; // Higher score first
@@ -853,25 +842,27 @@ function createQuestionLeaderboard(quiz, questionIndex) {
     sortedParticipants.forEach((participant, index) => {
       const newPosition = index + 1;
       const oldPosition = participant.previousPosition || newPosition;
-      
+
       participant.positionChange = oldPosition - newPosition; // Positive = moved up, negative = moved down
       participant.previousPosition = newPosition;
     });
 
     // Get top 3 for podium display
     const topThree = sortedParticipants.slice(0, 3);
-    
+
     let leaderboard = `🏆 <b>LEADERBOARD</b> 🏆\n`;
     leaderboard += `<i>After Question ${questionIndex + 1}</i>\n\n`;
 
     // Podium display
     if (topThree.length >= 1) {
       const first = topThree[0];
-      const displayName = first.username ? `@${first.username}` : first.firstName;
+      const displayName = first.username
+        ? `@${first.username}`
+        : first.firstName;
       const positionIcon = getPositionChangeIcon(first.positionChange);
-      
+
       leaderboard += `🥇 <b>${displayName}</b> - ${first.score} pts ${positionIcon}\n`;
-      
+
       if (first.streak > 1) {
         leaderboard += `   🔥 ${first.streak}-question streak!\n`;
       }
@@ -879,11 +870,13 @@ function createQuestionLeaderboard(quiz, questionIndex) {
 
     if (topThree.length >= 2) {
       const second = topThree[1];
-      const displayName = second.username ? `@${second.username}` : second.firstName;
+      const displayName = second.username
+        ? `@${second.username}`
+        : second.firstName;
       const positionIcon = getPositionChangeIcon(second.positionChange);
-      
+
       leaderboard += `🥈 <b>${displayName}</b> - ${second.score} pts ${positionIcon}\n`;
-      
+
       if (second.streak > 1) {
         leaderboard += `   🔥 ${second.streak}-question streak!\n`;
       }
@@ -891,24 +884,26 @@ function createQuestionLeaderboard(quiz, questionIndex) {
 
     if (topThree.length >= 3) {
       const third = topThree[2];
-      const displayName = third.username ? `@${third.username}` : third.firstName;
+      const displayName = third.username
+        ? `@${third.username}`
+        : third.firstName;
       const positionIcon = getPositionChangeIcon(third.positionChange);
-      
+
       leaderboard += `🥉 <b>${displayName}</b> - ${third.score} pts ${positionIcon}\n`;
-      
+
       if (third.streak > 1) {
         leaderboard += `   🔥 ${third.streak}-question streak!\n`;
       }
     }
 
     // Show highest streak if significant
-    const highestStreakPlayer = sortedParticipants.reduce((max, player) => 
+    const highestStreakPlayer = sortedParticipants.reduce((max, player) =>
       player.streak > max.streak ? player : max
     );
-    
+
     if (highestStreakPlayer.streak >= 3) {
-      const streakName = highestStreakPlayer.username 
-        ? `@${highestStreakPlayer.username}` 
+      const streakName = highestStreakPlayer.username
+        ? `@${highestStreakPlayer.username}`
         : highestStreakPlayer.firstName;
       leaderboard += `\n🔥 <b>Hot Streak:</b> ${streakName} (${highestStreakPlayer.streak} in a row!)`;
     }
@@ -925,8 +920,6 @@ function createQuestionLeaderboard(quiz, questionIndex) {
   }
 }
 
-
-
 function getPositionChangeIcon(change) {
   if (change > 0) {
     return `(↑${change})`;
@@ -936,7 +929,6 @@ function getPositionChangeIcon(change) {
     return "(→)";
   }
 }
-
 
 /**
  * Updated handleQuestionTimeout with leaderboard display
@@ -997,7 +989,7 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
     }
 
     // Create answer summary message
-    const answerMessage = 
+    const answerMessage =
       `<b>⏱️ TIME'S UP! ⏱️</b>\n\n` +
       `✅ <b>Correct Answer:</b> ${correctLetter}. ${correctOption}` +
       winnerMessage;
@@ -1012,10 +1004,23 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
         const leaderboard = createQuestionLeaderboard(quiz, questionIndex);
         await ctx.replyWithHTML(leaderboard);
 
+        const isLastQuestion = questionIndex + 1 >= quiz.questions.length;
         // Show next question countdown
-        await ctx.replyWithHTML(
-          `<b>⏳ Next question in ${quiz.settings.intermissionTime} seconds...</b>`
-        );
+        if (isLastQuestion) {
+          // This was the last question - end the quiz
+          await endQuiz(ctx, chatId);
+        } else {
+          // More questions remaining - show countdown
+          await ctx.replyWithHTML(
+            `<b>⏳ Next question in ${quiz.settings.intermissionTime} seconds...</b>`
+          );
+
+          // Schedule next question
+          quiz.timers.intermission = setTimeout(
+            () => nextQuestion(ctx, chatId),
+            quiz.settings.intermissionTime * 1000
+          );
+        }
 
         // Schedule next question
         quiz.timers.intermission = setTimeout(
@@ -1028,7 +1033,6 @@ async function handleQuestionTimeout(ctx, chatId, questionIndex) {
         setTimeout(() => nextQuestion(ctx, chatId), 3000);
       }
     }, 1000); // 1 second delay for better UX
-
   } catch (error) {
     logger.error("Error in handleQuestionTimeout:", error);
     setTimeout(
@@ -1118,10 +1122,10 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
 
     if (isCorrect) {
       participant.correctAnswers++;
-      
+
       // Base point for correct answer
       pointsEarned = 1;
-      
+
       // Check if this is the first correct answer for this question
       if (!question.firstCorrectAnswer) {
         question.firstCorrectAnswer = {
@@ -1130,25 +1134,27 @@ async function processAnswer(ctx, chatId, userId, questionIndex, answerIndex) {
           firstName,
           time: responseTime,
         };
-        
+
         // Bonus point for being first
         pointsEarned += 1; // Total: 2 points for first correct
         isFirst = true;
       }
-      
+
       // Handle streak
       participant.streak++;
-      participant.maxStreak = Math.max(participant.maxStreak, participant.streak);
-      
+      participant.maxStreak = Math.max(
+        participant.maxStreak,
+        participant.streak
+      );
+
       // Streak bonus (starts from 2nd consecutive correct answer)
       if (participant.streak >= 2) {
         streakBonus = 1;
         pointsEarned += streakBonus;
       }
-      
+
       // Add points to participant's score
       participant.score += pointsEarned;
-      
     } else {
       // Wrong answer - reset streak
       participant.streak = 0;
@@ -1315,14 +1321,18 @@ function calculateResults(quiz) {
         0
       );
       const avgCorrect = totalCorrect / participants.length;
-      stats += `✅ <b>Avg Correct:</b> ${avgCorrect.toFixed(1)}/${quiz.questions.length}\n`;
+      stats += `✅ <b>Avg Correct:</b> ${avgCorrect.toFixed(1)}/${
+        quiz.questions.length
+      }\n`;
 
       // Streak statistics
-      const maxStreak = Math.max(...participants.map(p => p.maxStreak));
+      const maxStreak = Math.max(...participants.map((p) => p.maxStreak));
       if (maxStreak >= 2) {
-        const streakChampion = participants.find(p => p.maxStreak === maxStreak);
-        const streakName = streakChampion.username 
-          ? `@${streakChampion.username}` 
+        const streakChampion = participants.find(
+          (p) => p.maxStreak === maxStreak
+        );
+        const streakName = streakChampion.username
+          ? `@${streakChampion.username}`
           : streakChampion.firstName;
         stats += `🔥 <b>Longest Streak:</b> ${streakName} (${maxStreak} questions)\n`;
       }
